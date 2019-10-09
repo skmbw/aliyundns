@@ -9,9 +9,9 @@ try:
     import httplib
 except ImportError:
     import http.client as httplib
-import sys
 import urllib
 import urllib.request
+import urllib.parse
 import time
 import json
 import aliyun
@@ -198,10 +198,10 @@ class RestApi(object):
         return ""
 
     def getMultipartParas(self):
-        return [];
+        return []
 
     def getTranslateParas(self):
-        return {};
+        return {}
 
     def _check_requst(self):
         pass
@@ -213,16 +213,16 @@ class RestApi(object):
         connection = httplib.HTTPConnection(self.__domain, self.__port, timeout)
         timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         apiname_split = self.getapiname().split(".")
-        parameters = { \
-            'Format': 'json', \
-            'Version': apiname_split[4], \
-            'Action': apiname_split[3], \
-            'AccessKeyId': self.__access_key_id, \
-            'SignatureVersion': '1.0', \
-            'SignatureMethod': 'HMAC-SHA1', \
-            'SignatureNonce': str(uuid.uuid1()), \
-            'TimeStamp': timestamp, \
-            'partner_id': '1.0', \
+        parameters = {
+            'Format': 'json',
+            'Version': apiname_split[4],
+            'Action': apiname_split[3],
+            'AccessKeyId': self.__access_key_id,
+            'SignatureVersion': '1.0',
+            'SignatureMethod': 'HMAC-SHA1',
+            'SignatureNonce': str(uuid.uuid1()),
+            'TimeStamp': timestamp,
+            'partner_id': '1.0'
             }
         application_parameter = self.getApplicationParameters()
         for key in application_parameter.keys():
@@ -230,39 +230,39 @@ class RestApi(object):
 
         signature = sign(self.__access_key_secret, parameters)
         parameters['Signature'] = signature
-        url = "/?" + urllib.urlencode(parameters)
+        url = "/?" + urllib.parse.urlencode(parameters)
 
         connection.connect()
 
-        header = self.get_request_header();
-        if (self.getMultipartParas()):
+        header = self.get_request_header()
+        if self.getMultipartParas():
             form = MultiPartForm()
             for key in self.getMultipartParas():
                 fileitem = getattr(self, key)
-                if (fileitem and isinstance(fileitem, FileItem)):
+                if fileitem and isinstance(fileitem, FileItem):
                     form.add_file(key, fileitem.filename, fileitem.content)
             body = str(form)
             header['Content-type'] = form.get_content_type()
         else:
             body = None
         connection.request(self.__httpmethod, url, body=body, headers=header)
-        response = connection.getresponse();
+        response = connection.getresponse()
         result = response.read()
         jsonobj = json.loads(result)
         return jsonobj
 
     def getApplicationParameters(self):
         application_parameter = {}
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             if not key.startswith("__") and not key in self.getMultipartParas() and not key.startswith(
                     "_RestApi__") and value is not None:
-                if (key.startswith("_")):
+                if key.startswith("_"):
                     application_parameter[key[1:]] = value
                 else:
                     application_parameter[key] = value
         # 查询翻译字典来规避一些关键字属性
         translate_parameter = self.getTranslateParas()
-        for key, value in application_parameter.iteritems():
+        for key, value in application_parameter.items():
             if key in translate_parameter:
                 application_parameter[translate_parameter[key]] = application_parameter[key]
                 del application_parameter[key]
